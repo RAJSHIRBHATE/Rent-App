@@ -245,6 +245,11 @@ function loadPageContent() {
             break;
         case 'owner-dashboard.html':
             loadOwnerDashboard();
+            updateOwnerNotificationBadge();
+            break;
+        case 'owner-products.html':
+            loadOwnerProducts();
+            updateOwnerNotificationBadge();
             break;
         case 'owner-products.html':
             loadOwnerProducts();
@@ -778,13 +783,17 @@ function handleCheckout(e) {
         total: cart.reduce((sum, item) => sum + item.totalPrice + item.deposit, 0),
         status: 'pending',
         date: new Date().toISOString(),
-        notifications: []
+        notifications: [],
+        ownerNotificationRead: false // Track if owner has seen this order
     };
 
     // Save order
     let orders = JSON.parse(localStorage.getItem('orders') || '[]');
     orders.push(order);
     localStorage.setItem('orders', JSON.stringify(orders));
+    
+    // Create owner notification
+    createOwnerNotification(order.id, order.customerName, order.total);
 
     // Clear cart
     localStorage.setItem('cart', JSON.stringify([]));
@@ -795,15 +804,43 @@ function handleCheckout(e) {
 
 // ---------------------- Owner / Orders ----------------------
 
+// Create Owner Notification
+function createOwnerNotification(orderId, customerName, total) {
+    let ownerNotifications = JSON.parse(localStorage.getItem('ownerNotifications') || '[]');
+    
+    ownerNotifications.push({
+        id: Date.now(),
+        orderId: orderId,
+        message: `New order from ${customerName} - Total: ₹${total}`,
+        type: 'new_order',
+        date: new Date().toISOString(),
+        read: false
+    });
+    
+    localStorage.setItem('ownerNotifications', JSON.stringify(ownerNotifications));
+}
+
 // Load Owner Dashboard
 function loadOwnerDashboard() {
     const orders = JSON.parse(localStorage.getItem('orders') || '[]');
     const ordersList = document.getElementById('ordersList');
     if (!ordersList) return;
-    const newOrdersCount = orders.filter(o => o.status === 'pending').length;
+    
+    // Count unread notifications
+    const ownerNotifications = JSON.parse(localStorage.getItem('ownerNotifications') || '[]');
+    const unreadNotifications = ownerNotifications.filter(n => !n.read);
+    const newOrdersCount = orders.filter(o => o.status === 'pending' && !o.ownerNotificationRead).length;
 
     const newOrdersCountEl = document.getElementById('newOrdersCount');
     if (newOrdersCountEl) newOrdersCountEl.textContent = newOrdersCount;
+    
+    // Update notification icon
+    updateOwnerNotificationBadge();
+    
+    // Show notification popup if there are unread notifications
+    if (unreadNotifications.length > 0) {
+        showOwnerNotificationPopup(unreadNotifications);
+    }
 
     if (orders.length === 0) {
         ordersList.innerHTML = '<div class="no-orders"><h2>No orders yet</h2><p>Orders will appear here when customers place them.</p></div>';
@@ -859,9 +896,143 @@ function loadOwnerDashboard() {
                         Mark as Processed
                     </button>
                 ` : ''}
+                ${order.status === 'pending' && !order.ownerNotificationRead ? `
+                    <button class="btn-mark-read" onclick="markOrderAsRead(${order.id})" style="margin-top: 10px; margin-left: 10px;">
+                        Mark as Read
+                    </button>
+                ` : ''}
             </div>
         </div>
     `).join('');
+}
+
+// Update Owner Notification Badge
+function updateOwnerNotificationBadge() {
+    const ownerNotifications = JSON.parse(localStorage.getItem('ownerNotifications') || '[]');
+    const unreadCount = ownerNotifications.filter(n => !n.read).length;
+    
+    const notificationIcon = document.getElementById('ownerNotificationIcon');
+    if (notificationIcon) {
+        if (unreadCount > 0) {
+            notificationIcon.style.display = 'inline-block';
+            notificationIcon.textContent = unreadCount;
+        } else {
+            notificationIcon.style.display = 'none';
+        }
+    }
+}
+
+// Show Owner Notification Popup
+function showOwnerNotificationPopup(notifications) {
+    // Remove existing popup if any
+    const existingPopup = document.getElementById('ownerNotificationPopup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+    
+    const popup = document.createElement('div');
+    popup.id = 'ownerNotificationPopup';
+    popup.className = 'owner-notification-popup';
+    popup.innerHTML = `
+        <div class="notification-popup-header">
+            <h3>🔔 New Notifications (${notifications.length})</h3>
+            <button onclick="closeOwnerNotificationPopup()" class="btn-close-popup">×</button>
+        </div>
+        <div class="notification-popup-content">
+            ${notifications.map(notif => `
+                <div class="notification-popup-item">
+                    <p><strong>${notif.message}</strong></p>
+                    <small>${new Date(notif.date).toLocaleString()}</small>
+                    <button onclick="markOwnerNotificationRead(${notif.id})" class="btn-mark-read-small">Mark as Read</button>
+                </div>
+            `).join('')}
+        </div>
+        <div class="notification-popup-footer">
+            <button onclick="markAllOwnerNotificationsRead()" class="btn-mark-all-read">Mark All as Read</button>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Auto-close after 10 seconds
+    setTimeout(() => {
+        if (popup.parentNode) {
+            popup.remove();
+        }
+    }, 10000);
+}
+
+// Close Owner Notification Popup
+function closeOwnerNotificationPopup() {
+    const popup = document.getElementById('ownerNotificationPopup');
+    if (popup) {
+        popup.remove();
+    }
+}
+
+// Mark Owner Notification as Read
+function markOwnerNotificationRead(notificationId) {
+    let ownerNotifications = JSON.parse(localStorage.getItem('ownerNotifications') || '[]');
+    const notification = ownerNotifications.find(n => n.id === notificationId);
+    
+    if (notification) {
+        notification.read = true;
+        localStorage.setItem('ownerNotifications', JSON.stringify(ownerNotifications));
+        updateOwnerNotificationBadge();
+        
+        // Remove from popup if still visible
+        const popup = document.getElementById('ownerNotificationPopup');
+        if (popup) {
+            const unreadNotifications = ownerNotifications.filter(n => !n.read);
+            if (unreadNotifications.length === 0) {
+                popup.remove();
+            } else {
+                loadOwnerDashboard(); // Refresh popup
+            }
+        }
+    }
+}
+
+// Mark All Owner Notifications as Read
+function markAllOwnerNotificationsRead() {
+    let ownerNotifications = JSON.parse(localStorage.getItem('ownerNotifications') || '[]');
+    ownerNotifications.forEach(n => n.read = true);
+    localStorage.setItem('ownerNotifications', JSON.stringify(ownerNotifications));
+    
+    // Also mark all pending orders as read
+    let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    orders.forEach(order => {
+        if (order.status === 'pending') {
+            order.ownerNotificationRead = true;
+        }
+    });
+    localStorage.setItem('orders', JSON.stringify(orders));
+    
+    updateOwnerNotificationBadge();
+    closeOwnerNotificationPopup();
+    loadOwnerDashboard();
+}
+
+// Mark Order as Read (from order card)
+function markOrderAsRead(orderId) {
+    let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+    const order = orders.find(o => o.id === orderId);
+    
+    if (order) {
+        order.ownerNotificationRead = true;
+        localStorage.setItem('orders', JSON.stringify(orders));
+        
+        // Mark related notification as read
+        let ownerNotifications = JSON.parse(localStorage.getItem('ownerNotifications') || '[]');
+        const relatedNotification = ownerNotifications.find(n => n.orderId === orderId);
+        if (relatedNotification) {
+            relatedNotification.read = true;
+            localStorage.setItem('ownerNotifications', JSON.stringify(ownerNotifications));
+        }
+        
+        updateOwnerNotificationBadge();
+        loadOwnerDashboard();
+    }
 }
 
 // Process Order
