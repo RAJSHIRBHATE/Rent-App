@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart - Rent Electronics</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h2>Rent Electronics</h2>
+            <div class="nav-links">
+                <a href="customer-dashboard.html">Products</a>
+                <a href="cart.html" class="active">Cart (<span id="cartCount">0</span>)</a>
+                <a href="order-history.html">My Orders <span class="notification-icon" id="navNotificationIcon" style="display: none;"></span></a>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Shopping Cart</h1>
+        <div id="cartItems" class="cart-container">
+            <!-- Cart items will be loaded here -->
+        </div>
+        <div class="cart-summary">
+            <div class="summary-card">
+                <h3>Order Summary</h3>
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">₹0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Deposit:</span>
+                    <span id="totalDeposit">₹0</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total:</span>
+                    <span id="totalAmount">₹0</span>
+                </div>
+                <button id="checkoutBtn" class="btn btn-primary btn-large">Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

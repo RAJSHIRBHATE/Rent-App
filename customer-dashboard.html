@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rent Electronics - Products</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h2>Rent Electronics</h2>
+            <div class="nav-links">
+                <a href="customer-dashboard.html" class="active">Products</a>
+                <a href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+                <a href="order-history.html">My Orders <span class="notification-icon" id="navNotificationIcon" style="display: none;"></span></a>
+                <span id="userName"></span>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Available Electronics for Rent</h1>
+        <div id="productsGrid" class="products-grid">
+            <!-- Products will be loaded here -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
